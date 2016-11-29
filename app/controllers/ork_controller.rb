@@ -2,17 +2,20 @@ class OrkController < ApplicationController
   require 'net/http'
   require 'json'
 
-  def test
+  def login
+  end
 
-    uri = URI('https://amtgard.com/ork/orkservice/Json/index.php?call=Authorization/Authorize&request[UserName]=ritari&request[Password]=zG0ph3rz')
+  def send_credit
+    @username = params[:username]
+    @password = params[:password]
+    uri = URI("https://amtgard.com/ork/orkservice/Json/index.php?call=Authorization/Authorize&request[UserName]=#{@username}&request[Password]=#{@password}")
     res = Net::HTTP.get_response(uri)
     puts res.body if res.is_a?(Net::HTTPSuccess)
 
     @token = JSON.parse(res.body)['Token']
+    @user = JSON.parse(res.body)['UserId']
 
-    uri = URI("https://amtgard.com/ork/orkservice/Json/index.php?call=Attendance/AddAttendance&request[MundaneId]=54527&request[ClassId]=2&request[Date]=2016-11-26T11:49:59-09:00&request[Credits]=1&request[ParkId]=198&request[KingdomId]=4&request[Token]=#{@token}")
-    res = Net::HTTP.get_response(uri)
-    puts res.body if res.is_a?(Net::HTTPSuccess)
+    SubmitCreditJob.perform_now(@token, @user)
 
     render json: res.body
   end
